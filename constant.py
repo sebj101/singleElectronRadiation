@@ -1,5 +1,6 @@
 # constant.py
 # Physical constants used
+import numpy
 
 COULOMBCHARGE = 1.602176634*10**-19 # Coulombs
 PI = numpy.pi

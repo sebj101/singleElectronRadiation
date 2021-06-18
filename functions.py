@@ -5,7 +5,7 @@ import constant
 
 def CalcAngCyclotronFreq(BField, KE):
     # Angular cyclotron frequency from magnetic field and electron KE    
-    freq = (constant.COULOMBCHARGE * BField)/(constant.ERESTMASS + KE/constant.CLIGHT)
+    freq = (constant.COULOMBCHARGE * BField)/(constant.ERESTMASS + KE/(constant.CLIGHT*constant.CLIGHT))
     return freq
 
 def CalcCyclotronFreq(BField, KE):
@@ -32,14 +32,30 @@ def BFieldBathtubPlusBkg(zPos, l0, l1, b0, bBkg):
         
     return field
 
-# In a "harmonic trap"
-def BFieldHarmonic(zPos, l0, b0):
+### In a "harmonic trap" ########
+def BFieldHarmonicFromPos(zPos, l0, b0):
     field = b0 * (1 + zPos**2/l0**2)
     return field
 
-def ZPositionHarmonic(t, v0, l0, bBkg, trapDepth):
+def BFieldHarmonicFromTime(time, v0, l0, b0, bBkg, trapDepth):
     thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
     axFreq = v0 * np.sin(thetaBot) / l0
-    zMax = l0 * np.arctan(thetaBot)
-    z = zMax * np.sin(axFreq * t)
+    zMax = l0 * 1/np.tan(thetaBot)    
+    field = b0 * ( 1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0)*np.cos(2*axFreq*time) )
+    return field
+
+def ZPositionHarmonic(time, v0, l0, b0, bBkg, trapDepth):
+    thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
+    axFreq = v0 * np.sin(thetaBot) / l0
+    zMax = l0 * 1/np.tan(thetaBot)
+    z = zMax * np.sin(axFreq * time)
     return z
+
+def AngCyclFreqHarmonicFromTime(time, ke, v0, l0, b0, bBkg, trapDepth):
+    premult = CalcAngCyclotronFreq(bBkg, ke)
+    print(premult)
+    thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
+    axFreq = v0 * np.sin(thetaBot) / l0
+    zMax = l0 * 1/np.tan(thetaBot)
+    freq = premult * (1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0)*np.cos(2*axFreq*time))
+    return freq

@@ -64,9 +64,9 @@ def RunMagneticFieldPlots():
     
 
     f2 = ROOT.TF1("fBathtubBkg; z [cm]; Total field [T]", BFieldBathtubPlusBkg, -40., 40., 4)
-    f2.SetParameter(0, 100)
+    f2.SetParameter(0, 4.5)
     f2.SetParameter(1, 20)
-    f2.SetParameter(2, 0.01)
+    f2.SetParameter(2, 0.0001)
     f2.SetParameter(3, 1.)
     f2.GetYaxis().SetRangeUser(0.9, 1)
     f2.SetNpx(1000)

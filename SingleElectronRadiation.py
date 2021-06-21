@@ -15,13 +15,15 @@ def RunSingleElectronSim():
     B0   = 1. # Tesla
     TRAPDEPTH = 0.004 # Tesla
 
+    DETPOS = np.array([5., 5.]) # Position of receiver
+    
     EKE = (18.6 * 10**3) * constant.COULOMBCHARGE # Electron KE in Joules
     V0 = 0.263 * constant.CLIGHT
     GAMMA = 1. / np.sqrt(1 - (V0/constant.CLIGHT)**2 )
 
     print("GAMMA = ", GAMMA)
     
-    nSteps = 22791
+    nSteps = 227911
     maxTime =  8 * 10**-6 
     timeStepSize = maxTime / nSteps
 
@@ -41,12 +43,14 @@ def RunSingleElectronSim():
     time = 1 * 10**-9
     
     for i in range(nSteps):
-        TimeArray[i]     = time
+        TimeArray[i] = time
 
-        XPosArray[i]     = func.XPositionHarmonic(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
-        XVelArray[i]     = func.XVelocityHarmonic(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
-        ZPosArray[i]     = func.ZPositionHarmonic(time, V0, L0, B0, BBKG, TRAPDEPTH)
-        ZVelArray[i]     = func.ZVelocityHarmonic(time, V0, L0, B0, BBKG, TRAPDEPTH)
+        pos = func.XZPositionHarmonic(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
+        vel = func.XZVelocityHarmonic(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
+        XPosArray[i] = pos[0]
+        XVelArray[i] = vel[0]
+        ZPosArray[i] = pos[1]
+        ZVelArray[i] = vel[1]
         
         BFieldArray[i]   = func.BFieldHarmonicFromTime(time, V0, L0, B0, BBKG, TRAPDEPTH)
         AngFreqArray[i]  = func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
@@ -56,15 +60,14 @@ def RunSingleElectronSim():
         # say d cm away from field axis
         # what frequencies does it see over time?
         
-        # Calculate angle between electron and detector
-        D = 5.
-        eDetAngle = np.arctan(D / ZPosArray[i])
-
+        # Calculate electron velocity in direction of detector
+        electronDetVec = np.subtract(DETPOS, pos)
+        electronDetVec_hat = electronDetVec / np.linalg.norm(electronDetVec)
         # Velocity in direction of receiver
-        velocity =
+        velReceiver = np.dot(vel, electronDetVec_hat)
         
         ReceiverFreqArrayNoDoppler[i] = func.ReceiverFreqDoppler(0, func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH) / (2 * np.pi))
-        ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(ZVelArray[i] * np.cos(eDetAngle), func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH) / (2 * np.pi))
+        ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH) / (2 * np.pi))
         
         time = time + timeStepSize
 

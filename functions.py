@@ -45,39 +45,29 @@ def BFieldHarmonicFromTime(time, v0, l0, b0, bBkg, trapDepth):
     field = b0 * ( 1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0)*np.cos(2*axFreq*time) )
     return field
 
-def ZPositionHarmonic(time, v0, l0, b0, bBkg, trapDepth):
-    thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
-    axFreq = v0 * np.sin(thetaBot) / l0
-    zMax = l0 * 1/np.tan(thetaBot)
-    z = zMax * np.sin(axFreq * time)
-    return z
-
-def ZVelocityHarmonic(time, v0, l0, b0, bBkg, trapDepth):
-    thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
-    axFreq = v0 * np.sin(thetaBot) / l0
-    zMax = l0 * 1/np.tan(thetaBot)
-    v = zMax * axFreq* np.cos(axFreq * time) / 100.
-    return v
-
-def XPositionHarmonic(time, ke, v0, l0, b0, bBkg, trapDepth):
+def XZPositionHarmonic(time, ke, v0, l0, b0, bBkg, trapDepth):
     angFreq = CalcAngCyclotronFreq(bBkg, ke)
     thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
     axFreq = v0 * np.sin(thetaBot) / l0
     zMax = l0 * 1/np.tan(thetaBot)
     freq = angFreq * (1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0)*np.cos(2*axFreq*time))
     gyroradius = (1. / np.sqrt(1 - (v0/constant.CLIGHT)**2 )) * constant.ERESTMASS * v0 / ( constant.COULOMBCHARGE * bBkg )
-    x = gyroradius * np.sin(angFreq * time)
-    return x
+    arr = np.array([0., 0.])
+    arr[0] = gyroradius * np.sin(angFreq * time)
+    arr[1] = zMax * np.sin(axFreq * time) / 100.
+    return arr
 
-def XVelocityHarmonic(time, ke, v0, l0, b0, bBkg, trapDepth):
+def XZVelocityHarmonic(time, ke, v0, l0, b0, bBkg, trapDepth):
     angFreq = CalcAngCyclotronFreq(bBkg, ke)
     thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
     axFreq = v0 * np.sin(thetaBot) / l0
     zMax = l0 * 1/np.tan(thetaBot)
     freq = angFreq * (1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0)*np.cos(2*axFreq*time))
     gyroradius = (1. / np.sqrt(1 - (v0/constant.CLIGHT)**2 )) * constant.ERESTMASS * v0 / ( constant.COULOMBCHARGE * bBkg )
-    xVel = gyroradius * angFreq * np.cos(angFreq * time)
-    return xVel
+    arr = np.array([0., 0.])
+    arr[0] = gyroradius * angFreq * np.sin(angFreq * time)
+    arr[1] = zMax * axFreq* np.cos(axFreq * time) / 100.
+    return arr
 
 def AngCyclFreqHarmonicFromTime(time, ke, v0, l0, b0, bBkg, trapDepth):
     premult = CalcAngCyclotronFreq(bBkg, ke)

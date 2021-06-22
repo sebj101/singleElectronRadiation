@@ -80,15 +80,15 @@ def BFieldHarmonicPlusBkg(x, p):
 def RunMagneticFieldPlots():
     BKGFIELD = 1. # Tesla
     
-    f1 = ROOT.TF1("fBathtub; z [cm]; Total field - main field [mT]", BFieldBathtub, -40., 40., 3)
-    f1.SetParameter(0, 4.5)
-    f1.SetParameter(1, 20)
-    f1.SetParameter(2, 0.1)
+    f1 = ROOT.TF1("fBathtub; z [cm]; Total field - main field [mT]", BFieldBathtub, -15., 15., 3)
+    f1.SetParameter(0, 10.)
+    f1.SetParameter(1, 15.)
+    f1.SetParameter(2, 1.)
     f1.SetNpx(1000)
     
     #c1 = ROOT.TCanvas("c1", "c1")
     #c1.cd()
-    #f.Draw("lr")
+    f1.Draw("lr")
     
     f2 = ROOT.TF1("fBathtubBkg; z [cm]; Total field [T]", BFieldBathtubPlusBkg, -40., 40., 4)
     f2.SetParameter(0, 4.5)
@@ -103,7 +103,7 @@ def RunMagneticFieldPlots():
     fHarm.SetParameter(0, np.sqrt(1000.))
     fHarm.SetParameter(1, 1)
     fHarm.SetNpx(1000)
-    fHarm.Draw("lr")
+    #fHarm.Draw("lr")
     
     text = input()
     

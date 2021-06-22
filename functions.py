@@ -13,25 +13,6 @@ def CalcCyclotronFreq(BField, KE):
     freq = (constant.COULOMBCHARGE * BField)/((constant.ERESTMASS + KE/(constant.CLIGHT*constant.CLIGHT)) * 2 * constant.PI)
     return freq
 
-def BFieldBathtubPlusBkg(zPos, l0, l1, b0, bBkg):
-    # Bathtub approximation for trapping B field generated using two coils
-    # zPos is position in field
-    # l0 is measure of field gradient in curved region
-    # l1 is width of the flat region
-    # b0 is field scale
-    # bBkg is background field
-    
-    field = 0.
-    
-    if zPos < -l1/2. :
-        field = bBkg + b0 * (1 + ((zPos + l1/2)**2)/l0**2 )
-    elif zPos >= -l1/2. and zPos <= l1/2. :
-        field = bBkg + b0
-    else :
-        field = bBkg + b0 * (1 + ((zPos - l1/2)**2)/l0**2 )
-        
-    return field
-
 ### In a "harmonic trap" ########
 ### Here we assume there is no energy loss as radiation
 def BFieldHarmonicFromPos(zPos, l0, b0):
@@ -82,3 +63,50 @@ def ReceiverFreqDoppler(vel, f0):
     # f0: Frequency at source
     f_r = np.sqrt( (1 - vel / constant.CLIGHT)/(1 + vel / constant.CLIGHT) ) * f0
     return f_r
+
+#### Bathtub trap ####
+def BFieldBathtubPlusBkgFromPos(zPos, l0, l1, b0, bBkg):
+    # Bathtub approximation for trapping B field generated using two coils
+    # zPos is position in field
+    # l0 is measure of field gradient in curved region
+    # l1 is width of the flat region
+    # b0 is field scale
+    # bBkg is background field
+    
+    field = 0.
+    
+    if zPos < -l1/2. :
+        field = bBkg + b0 * (1 + ((zPos + l1/2)**2)/l0**2 )
+    elif zPos >= -l1/2. and zPos <= l1/2. :
+        field = bBkg + b0
+    else :
+        field = bBkg + b0 * (1 + ((zPos - l1/2)**2)/l0**2 )
+        
+    return field
+
+def BFieldBathtubFromTime(time, v0, l0, l1, b0, bBkg, trapDepth):
+    l0 = l0 / 100.
+    l1 = l1 / 100.
+    thetaBot = np.arcsin(np.sqrt(1 - trapDepth/bBkg))
+    zMax = l0 / np.tan(thetaBot)
+    omegaA = v0 * np.sin(thetaBot) / l0
+    
+    t1 = l1 / (v0 * np.cos(thetaBot))
+    t2 = t1 + np.pi / omegaA
+    t3 = t1 + t2
+    T  = 2 * t2
+
+    tRem = time % T
+
+    field = 0.
+    
+    if tRem > 0. and tRem < t1 :
+        field = b0
+    elif tRem > t1 and tRem < t2 :
+        field = b0 * ( 1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0) * np.cos(2*omegaA*(tRem-t1)) )
+    elif tRem > t2 and tRem < t3 :
+        field = b0 
+    elif tRem > t3 and tRem < T :
+        field = b0 * ( 1 + zMax*zMax/(2*l0*l0) - zMax*zMax/(2*l0*l0) * np.cos(2*omegaA*(tRem-t3)) )     
+
+    return field

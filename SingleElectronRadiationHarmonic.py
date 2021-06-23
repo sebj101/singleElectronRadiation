@@ -6,28 +6,38 @@ import constant
 import functions as func
 import numpy as np
 import matplotlib.pyplot as pyplot
-import cv2
 
 def RunSingleElectronSim():
     # Field constants for harmonic trap field
-    BBKG = 1. # Tesla
-    L0   = 20. # cm
+    BBKG = 1.004 # Tesla
+    L0   = 0.2 # m
     B0   = 1. # Tesla
     TRAPDEPTH = 0.004 # Tesla
-
-    DETPOS = np.array([5., 5.]) # Position of receiver
     
-    EKE = (18.6 * 10**3) * constant.COULOMBCHARGE # Electron KE in Joules
-    V0 = 0.263 * constant.CLIGHT
-    GAMMA = 1. / np.sqrt(1 - (V0/constant.CLIGHT)**2 )
+    DETPOS = np.array([.1, 0.]) # Position of receiver
 
-    print("GAMMA = ", GAMMA)
+    # Basic electron kinematics
+    EKE = (30. * 10**3) * constant.COULOMBCHARGE # Electron KE in Joules
+    GAMMA = (constant.ERESTMASS*constant.CLIGHT*constant.CLIGHT + EKE)/(constant.ERESTMASS*constant.CLIGHT*constant.CLIGHT)
+    V0 = constant.CLIGHT * ( np.sqrt((GAMMA*GAMMA - 1)/GAMMA) )
+
+    THETABOTMIN = func.CalcThetaBotMin(TRAPDEPTH, B0)
+    PITCHANGLE = 89.43 * np.pi / 180.
+    AXIALFREQUENCY = func.AxialFrequencyHarmonic(V0, L0, PITCHANGLE)
+    ZMAX = L0/(np.tan(PITCHANGLE))
     
-    nSteps = 227911
-    maxTime =  8 * 10**-6 
+    print("GAMMA =", GAMMA)
+    print("Cyclotron frequency =", func.CalcAngCyclotronFreq(B0, EKE) )
+    print('Minimum pitch angle at trap bottom =', THETABOTMIN * 180. / np.pi)
+    print('Axial frequency =', AXIALFREQUENCY)
+    print('z_max =', ZMAX, 'm')
+    
+    
+    # How many time steps do we want?
+    nSteps = 20000
+    maxTime =  1 * 10**-7 
     timeStepSize = maxTime / nSteps
-
-    print("Cyclotron frequency = ", func.CalcCyclotronFreq(BBKG, EKE) )
+    time = 1 * 10**-10
     
     TimeArray    = np.zeros(nSteps)
     BFieldArray  = np.zeros(nSteps)
@@ -38,23 +48,23 @@ def RunSingleElectronSim():
     AngFreqArray = np.zeros(nSteps)
     CyclFreqArray = np.zeros(nSteps)
     ReceiverFreqArrayNoDoppler = np.zeros(nSteps)
-    ReceiverFreqArrayDoppler = np.zeros(nSteps)
-    
-    time = 1 * 10**-9
+    ReceiverFreqArrayDoppler   = np.zeros(nSteps)
     
     for i in range(nSteps):
         TimeArray[i] = time
 
-        pos = func.XZPositionHarmonic(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
-        vel = func.XZVelocityHarmonic(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
+        pos = func.XZPositionHarmonic(time, EKE, V0, L0, BBKG, PITCHANGLE)
+        vel = func.XZVelocityHarmonic(time, EKE, V0, L0, BBKG, PITCHANGLE)
+        pos[0] = 0.
+        vel[0] = 0.
         XPosArray[i] = pos[0]
         XVelArray[i] = vel[0]
         ZPosArray[i] = pos[1]
         ZVelArray[i] = vel[1]
         
-        BFieldArray[i]   = func.BFieldHarmonicFromTime(time, V0, L0, B0, BBKG, TRAPDEPTH)
-        AngFreqArray[i]  = func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)
-        CyclFreqArray[i] = func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH)/(2. * np.pi)
+        BFieldArray[i]   = func.BFieldHarmonicFromTime(time, V0, L0, B0, PITCHANGLE)
+        AngFreqArray[i]  = func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, PITCHANGLE)
+        CyclFreqArray[i] = func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, PITCHANGLE)/(2. * np.pi)
         
         # Assume there is detector above midpoint of CRES region
         # say d cm away from field axis
@@ -63,11 +73,13 @@ def RunSingleElectronSim():
         # Calculate electron velocity in direction of detector
         electronDetVec = np.subtract(DETPOS, pos)
         electronDetVec_hat = electronDetVec / np.linalg.norm(electronDetVec)
+
         # Velocity in direction of receiver
         velReceiver = np.dot(vel, electronDetVec_hat)
         
-        ReceiverFreqArrayNoDoppler[i] = func.ReceiverFreqDoppler(0, func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH) / (2 * np.pi))
-        ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, func.AngCyclFreqHarmonicFromTime(time, EKE, V0, L0, B0, BBKG, TRAPDEPTH) / (2 * np.pi))
+        ReceiverFreqArrayNoDoppler[i] = func.ReceiverFreqDoppler(0, AngFreqArray[i])
+        ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, AngFreqArray[i])
+        #ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, angFreqArray[i])
         
         time = time + timeStepSize
 
@@ -79,16 +91,16 @@ def RunSingleElectronSim():
     f1graph3 = ax1[1][1].plot(TimeArray, XVelArray)
     ax1[0][0].set_title("Z position")
     ax1[0][0].set_xlabel('t [s]')
-    ax1[0][0].set_ylabel('z [cm]')
+    ax1[0][0].set_ylabel('z [m]')
     ax1[0][1].set_title("Electron axial velocity")
     ax1[0][1].set_xlabel('t [s]')
-    ax1[0][1].set_ylabel(r'$v_{z}\, [ms^{-1}]$')
+    ax1[0][1].set_ylabel(r'$v_{z}$ [m$s^{-1}$]')
     ax1[1][0].set_title("X position")
     ax1[1][0].set_xlabel('t [s]')
-    ax1[1][0].set_ylabel('x [cm]')
+    ax1[1][0].set_ylabel('x [m]')
     ax1[1][1].set_title("Electron x velocity")
     ax1[1][1].set_xlabel('t [s]')
-    ax1[1][1].set_ylabel(r'$v_{x}\, [ms^{-1}]$')
+    ax1[1][1].set_ylabel(r'$v_{x}$ [m$s^{-1}$]')
 
     fig2, ax2 = pyplot.subplots(nrows=3, ncols=1, figsize=[8, 15])    
     f2graph0 = ax2[0].plot(TimeArray, BFieldArray)
@@ -99,10 +111,10 @@ def RunSingleElectronSim():
     ax2[0].set_ylabel('B [T]')    
     ax2[1].set_title("Electron angular frequency")
     ax2[1].set_xlabel('t [s]')
-    ax2[1].set_ylabel(r'$\Omega_{c}\, [s^{-1}]$')
+    ax2[1].set_ylabel(r'$\Omega_{c}$ [$s^{-1}$]')
     ax2[2].set_title("Electron frequency")
     ax2[2].set_xlabel('t [s]')
-    ax2[2].set_ylabel(r'$\Omega_{c}\, [s^{-1}]$')
+    ax2[2].set_ylabel(r'$\Omega_{c}$ [$s^{-1}$]')
     
     fig3, ax3 = pyplot.subplots(nrows=1, ncols=1)
     f3graph0 = ax3.hist(ReceiverFreqArrayNoDoppler, bins=100)

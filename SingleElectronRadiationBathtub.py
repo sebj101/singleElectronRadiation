@@ -2,6 +2,7 @@
 # SingleElectronRadiationBathtub.py
 # Motion of an electron in bathtub magnetic trap
 
+import sys
 import constant
 import functions as func
 import numpy as np
@@ -17,7 +18,7 @@ def RunSingleElectronBathtubSim():
     B0   = 1. # Tesla
     TRAPDEPTH = 0.004 # Tesla
 
-    DETPOS = np.array([20., 0.]) # Position of receiver
+    DETPOS = np.array([0.3, 0.0]) # Position of receiver
     
     EKE = (18.6 * 10**3) * constant.COULOMBCHARGE # Electron KE in Joules
     GAMMA = (constant.ERESTMASS*constant.CLIGHT*constant.CLIGHT + EKE)/(constant.ERESTMASS*constant.CLIGHT*constant.CLIGHT)
@@ -46,6 +47,7 @@ def RunSingleElectronBathtubSim():
     timeStepSize = maxTime / nSteps
 
     print('Cyclotron frequency = ', func.CalcCyclotronFreq(BBKG, EKE) )
+    print('omegaA = ', omegaA)
     print('Axial frequency = ', axFreq)
     
     TimeArray   = np.zeros(nSteps)
@@ -58,6 +60,8 @@ def RunSingleElectronBathtubSim():
     
     time = 1 * 10**-10
 
+    maxAngFreq = -1 * sys.float_info.max
+    minAngFreq = sys.float_info.max
     
     for i in range(nSteps):
         TimeArray[i] = time
@@ -72,9 +76,19 @@ def RunSingleElectronBathtubSim():
         electronDetVec_hat = electronDetVec / np.linalg.norm(electronDetVec)
         # Velocity in direction of receiver
         velReceiver = np.dot(vel, electronDetVec_hat)
-        AngCyclFreqArrayDoppler[i] = func.ReceiverFreqDoppler(ZVelArray[i], AngCyclFreqArray[i])
+        AngCyclFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, AngCyclFreqArray[i])
+
+        if AngCyclFreqArrayDoppler[i] > maxAngFreq :
+            maxAngFreq = AngCyclFreqArrayDoppler[i]
+
+        if AngCyclFreqArrayDoppler[i] < minAngFreq :
+            minAngFreq = AngCyclFreqArrayDoppler[i]
         
         time = time + timeStepSize
+
+    deltaOmega = maxAngFreq - minAngFreq
+    print('Modulation index, h = ', deltaOmega/axFreq)
+    
         
     # Now make the plots
     fig0, ax0 = pyplot.subplots(nrows=2, ncols=1, figsize=[6, 11])
@@ -107,6 +121,7 @@ def RunSingleElectronBathtubSim():
     ax2[1].set_title('Angular frequency - doppler effect')
     ax2[1].set_xlabel(r'$\Omega_{c}$ [radians $s^{-1}$]') 
     ax2[1].set_ylabel('A. U.')
+    ax2[1].set_yscale('log')
 #    ax2[1].set_xlim([1.694e11, 1.696e11])
     
     pyplot.show()

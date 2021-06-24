@@ -63,10 +63,13 @@ def AxialFrequencyHarmonic(v0, l0, pitchAngle):
     axFreq = v0 * np.sin(pitchAngle) / l0
     return axFreq
 
-def ReceiverFreqDoppler(vel, f0):
+def ReceiverFreqDoppler(vel, f0, theta_r):
     # vel: Longitudinal velocity towards receiver
     # f0: Frequency at source
-    f_r = np.sqrt( (1 - vel / constant.CLIGHT)/(1 + vel / constant.CLIGHT) ) * f0
+    # theta_r is angle between source and receiver 
+    #f_r = np.sqrt( (1 - vel / constant.CLIGHT)/(1 + vel / constant.CLIGHT) ) * f0
+    gamma = 1. / np.sqrt( 1 - vel*vel/(constant.CLIGHT*constant.CLIGHT) )
+    f_r = f0 / ( gamma * (1 - vel/constant.CLIGHT * np.cos(theta_r)) )
     return f_r
 
 #### Bathtub trap ####

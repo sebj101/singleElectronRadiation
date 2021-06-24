@@ -76,9 +76,12 @@ def RunSingleElectronSim():
 
         # Velocity in direction of receiver
         velReceiver = np.dot(vel, electronDetVec_hat)
+        vel_hat = vel / np.linalg.norm(vel)
+        # Angle between source travel direction and receiver
+        sourceReceiverAng = np.arccos( np.dot(vel_hat, electronDetVec_hat) )
         
-        ReceiverFreqArrayNoDoppler[i] = func.ReceiverFreqDoppler(0, AngFreqArray[i])
-        ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, AngFreqArray[i])
+        ReceiverFreqArrayNoDoppler[i] = func.ReceiverFreqDoppler(0, AngFreqArray[i], sourceReceiverAng)
+        ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(ZVelArray[i], AngFreqArray[i], sourceReceiverAng)
         #ReceiverFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, angFreqArray[i])
         
         time = time + timeStepSize

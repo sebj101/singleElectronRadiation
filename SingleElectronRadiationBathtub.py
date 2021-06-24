@@ -18,6 +18,8 @@ def RunSingleElectronBathtubSim():
     B0   = 1. # Tesla
     TRAPDEPTH = 0.004 # Tesla
 
+    PITCHANGLE = 89. * np.pi / 180.
+    
     DETPOS = np.array([0.3, 0.0]) # Position of receiver
     
     EKE = (18.6 * 10**3) * constant.COULOMBCHARGE # Electron KE in Joules
@@ -26,29 +28,32 @@ def RunSingleElectronBathtubSim():
 
     #1. / np.sqrt(1 - (V0/constant.CLIGHT)**2 )
 
-    print("GAMMA = ", GAMMA)
-    print("BETA = ", V0/constant.CLIGHT)
+    print("GAMMA =", GAMMA)
+    print("BETA =", V0/constant.CLIGHT)
 
     l0 = L0 / 100.
     l1 = L1 / 100.
-    thetaBot = np.arcsin(np.sqrt(1 - TRAPDEPTH/BBKG))
-    zMax = l0 / np.tan(thetaBot)
-    omegaA = V0 * np.sin(thetaBot) / l0
-
-    axFreq = omegaA * ( 1 + l1 * np.tan(thetaBot)/(np.pi*l0) )**-1
     
-    t1 = l1 / (V0 * np.cos(thetaBot))                                                               
-    t2 = t1 + np.pi / omegaA
+    THETABOT = func.CalcThetaBotMin(TRAPDEPTH, B0)
+    
+    ZMAX = l0 / np.tan(PITCHANGLE)
+    OMEGAA = V0 * np.sin(PITCHANGLE) / l0
+
+    AXFREQ = OMEGAA * ( 1 + l1 * np.tan(PITCHANGLE)/(np.pi*l0) )**-1
+    
+    t1 = l1 / (V0 * np.cos(PITCHANGLE))                                                               
+    t2 = t1 + np.pi / OMEGAA
     t3 = t1 + t2
     T  = 2 * t2
-    
+
+    print('Cyclotron frequency =', func.CalcAngCyclotronFreq(BBKG, EKE) )
+    print('omegaA =', OMEGAA)
+    print('Axial frequency =', AXFREQ)
+    print('Minimum pitch angle at bottom of trap=', THETABOT * 180. / np.pi)
+
     nSteps = 20000
     maxTime = 5*T
     timeStepSize = maxTime / nSteps
-
-    print('Cyclotron frequency = ', func.CalcCyclotronFreq(BBKG, EKE) )
-    print('omegaA = ', omegaA)
-    print('Axial frequency = ', axFreq)
     
     TimeArray   = np.zeros(nSteps)
     BFieldArray = np.zeros(nSteps)
@@ -76,7 +81,7 @@ def RunSingleElectronBathtubSim():
         electronDetVec_hat = electronDetVec / np.linalg.norm(electronDetVec)
         # Velocity in direction of receiver
         velReceiver = np.dot(vel, electronDetVec_hat)
-        AngCyclFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, AngCyclFreqArray[i])
+        AngCyclFreqArrayDoppler[i] = func.ReceiverFreqDoppler(velReceiver, AngCyclFreqArray[i], 1.5)
 
         if AngCyclFreqArrayDoppler[i] > maxAngFreq :
             maxAngFreq = AngCyclFreqArrayDoppler[i]
@@ -87,7 +92,7 @@ def RunSingleElectronBathtubSim():
         time = time + timeStepSize
 
     deltaOmega = maxAngFreq - minAngFreq
-    print('Modulation index, h = ', deltaOmega/axFreq)
+    print('Modulation index, h = ', deltaOmega/AXFREQ)
     
         
     # Now make the plots
@@ -116,13 +121,13 @@ def RunSingleElectronBathtubSim():
     ax2[0].set_title('Angular frequency - no doppler effect')
     ax2[0].set_xlabel(r'$\Omega_{c}$ [radians $s^{-1}$]')
     ax2[0].set_ylabel('A. U.')
- #   ax2[0].set_xlim([1.694e11, 1.696e11])
+    #ax2[0].set_xlim([1.694e11, 1.696e11])
     f2graph0 = ax2[1].hist(AngCyclFreqArrayDoppler, bins=200)
     ax2[1].set_title('Angular frequency - doppler effect')
     ax2[1].set_xlabel(r'$\Omega_{c}$ [radians $s^{-1}$]') 
     ax2[1].set_ylabel('A. U.')
-    ax2[1].set_yscale('log')
-#    ax2[1].set_xlim([1.694e11, 1.696e11])
+    #ax2[1].set_yscale('log')
+    #ax2[1].set_xlim([1.694e11, 1.696e11])
     
     pyplot.show()
     
